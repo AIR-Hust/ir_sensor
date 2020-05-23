@@ -1,0 +1,141 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+import rospy
+from ir_sensor.msg import IR_Array_msg
+from nav_msgs.msg import Odometry
+from geometry_msgs.msg import Twist
+import thread 
+
+# constant:
+NUM_SENSOR = 10
+PI = 3.14
+RATE = 5.0
+numSample = rospy.get_param("/ir_sensor/sensor_rate")/RATE
+
+# Trong so bubble_boundary
+K = [0.5, 1.5, 2.1, 3.2, 2.1, 1.5, 0.5, -1.0, -1.0, -1.0]
+OFFSET = NUM_SENSOR*[0.0]
+sensor_angles = rospy.get_param("/ir_sensor/angles")
+sensor_angles_rad = [x*PI/180.0 for x in sensor_angles]
+
+class IR_safety_Controller():
+    def __init__(self):
+        rospy.init_node('ir_safety_controller', log_level=rospy.DEBUG)
+        self.ir_array_sub = rospy.Subscriber("IR_sensor_arr", IR_Array_msg, self.ir_array_filter)
+        self.odom_vel_sub = rospy.Subscriber("/odom", Odometry, self.read_odom_vel)
+        self.ir_cmd_vel_pub = rospy.Publisher("ir_cmd_vel", Twist, queue_size=10)
+
+        self.count = 0
+        self.ir_array_sum = NUM_SENSOR*[0]
+        self.ir_array_filtered = NUM_SENSOR*[0.80]
+
+        self.odom_vel_x = 0.0
+        self.bubble_boundary = NUM_SENSOR*[0.80]
+        self.faced_obstacle = False
+
+        self.obstacle_located = NUM_SENSOR*[0]
+
+        self.mutex = thread.allocate_lock()
+
+        self.t_delta = rospy.Duration(1.0/RATE)
+        self.t_next = rospy.Time.now() + self.t_delta
+        rospy.loginfo("numSample: {}".format(numSample))
+
+        self.twist = Twist()
+        self.ctr_vel_x = 0
+        self.turn_z = 0
+
+        while not rospy.is_shutdown():
+            now = rospy.Time.now()
+            if now > self.t_next:
+                try:
+                    self.bubble_boundary = [k*self.odom_vel_x*(1.0/RATE) + o\
+                                            for k,o in zip(K, OFFSET)]
+                    #FIXME: xem lại hệ số k, vận tốc
+
+                    if(self.check_obstacle()):
+                        obstacle_dir = self.obstacle_directions()
+                        rospy.loginfo("Faced obstacle at {}".format(obstacle_dir))
+                        rospy.logdebug("bubble_boundary {}".format(self.bubble_boundary))
+                        rospy.logdebug("ir_array_filtered {}".format(self.ir_array_filtered))
+                        if obstacle_dir == "Left":
+                       #     self.turn_right()
+                            self.force_stop()
+                        else:
+                       #     self.turn_left()
+                            self.force_stop()
+                    else:
+                        pass
+                except Exception as e:
+                    rospy.logerr(e)
+                    return
+                self.t_next = now + self.t_delta
+
+    def turn_left(self):
+        rospy.loginfo("Turn left")
+        self.ctr_vel_x = self.odom_vel_x*0.9
+        self.turn_z = 1.0
+        self.twist = self.set_twist_cmd(self.ctr_vel_x, self.turn_z)
+        self.ir_cmd_vel_pub.publish(self.twist)
+
+    def turn_right(self):
+        rospy.loginfo("Turn right")
+        self.ctr_vel_x = self.odom_vel_x*0.9
+        self.turn_z = -1.0
+        self.twist = self.set_twist_cmd(self.ctr_vel_x, self.turn_z)
+        self.ir_cmd_vel_pub.publish(self.twist)
+
+    def force_stop(self):
+        rospy.loginfo("Stop by obstacle")
+        self.twist = self.set_twist_cmd(0.0, 0.0)
+        self.ir_cmd_vel_pub.publish(self.twist)
+
+    def set_twist_cmd(self, ctr_vel_x, turn_z):
+        twist = Twist()
+        twist.linear.x = ctr_vel_x
+        twist.linear.y = 0
+        twist.linear.z = 0
+        twist.angular.x = 0
+        twist.angular.y = 0
+        twist.angular.z = turn_z
+        return twist
+
+    def obstacle_directions(self):
+        try:
+            obstacles_right = sum(self.obstacle_located[0:4])
+            obstacles_left = sum(self.obstacle_located[4:7])
+        
+            return "Left" if obstacles_left > obstacles_right else "Right"
+
+        except Exception as e:
+            rospy.logerr(e)
+            return
+
+    def check_obstacle(self):
+        try:
+            self.obstacle_located = [(1 if x < b + o else 0) for x,b,o in zip(self.ir_array_filtered, self.bubble_boundary, OFFSET)]
+            rospy.logdebug("obstacle_locate: {}".format(self.obstacle_located))
+            return 1 in self.obstacle_located[0:7]
+        except Exception as e:
+            rospy.logerr(e)
+            return
+
+    def ir_array_filter(self, data):
+        if self.count < numSample:
+            self.ir_array_sum = [x+y for x,y in zip(self.ir_array_sum, data.ranges)]
+            # print("count: " + str(self.count) + " ir_arr_sum: " + str(self.ir_array_sum))
+
+            self.count += 1
+        else:
+            self.ir_array_filtered[:] = [x/numSample for x in self.ir_array_sum]
+            rospy.logdebug("ir_array_filtered: {}".format(self.ir_array_filtered))
+            self.count = 0
+            self.ir_array_sum = NUM_SENSOR*[0]
+
+    def  read_odom_vel(self, msg):
+        self.odom_vel_x = msg.twist.twist.linear.x
+
+
+
+if __name__ == "__main__":
+    ir_safety_controller = IR_safety_Controller()
