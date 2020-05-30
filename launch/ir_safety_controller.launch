@@ -1,10 +1,12 @@
 <launch>
   <include file="$(find ir_sensor)/launch/IR_sensor.launch" />
-    
+
+  <!-- Publish  -->
   <node name="ir_safety_controller" pkg="ir_sensor" type="ir_safety_controller.py" output="screen">
     <remap from="ir_cmd_vel" to="cmd_vel_mux/input/ir_safety_controller"/>
   </node>
-  <!-- nodelet manager -->  
+
+  <!-- nodelet manager -->
   <!-- <node pkg="nodelet" type="nodelet" name="mobile_base_nodelet_manager" args="manager"/> -->
   <!-- <node pkg="nodelet" type="nodelet" name="cmd_vel_mux" -->
   <!--       args="load yocs_cmd_vel_mux/CmdVelMuxNodelet mobile_base_nodelet_manager"> -->

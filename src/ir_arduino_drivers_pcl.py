@@ -15,7 +15,7 @@ from sensor_msgs.msg import Range
 import sensor_msgs.point_cloud2 as pc2
 from sensor_msgs.msg import PointCloud2
 
-BASE_RADIUS = 0.20 #cm
+BASE_RADIUS = 0.145  #cm
 
 class IR_sensor_arr(object):
     def __init__(self, controller, pins, angles, rate, frame_id):
