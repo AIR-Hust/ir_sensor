@@ -61,8 +61,12 @@ class IR_sensor_arr(object):
             try:
                 idx = 0
                 for pin in self.pins:
-                    self.values[idx] = self.read_value(pin)
-                    idx += 1
+                    if (idx<=6):
+                        self.values[idx] = self.read_value(pin)
+                        idx += 1
+                    elif (idx>6):
+                        self.values[idx] = 0.8
+                        idx += 1
             except:
                 return
             self.msg.header.stamp = rospy.Time.now()
@@ -84,7 +88,7 @@ class IR_sensor_arr(object):
 
             # rospy.loginfo("values: {}\nir_cloud: {}".format(self._list(self.values[5:7]), self._list(self.ir_cloud[5:7],depth=2)))
             # rospy.loginfo("values: {}\nir_cloud: {}".format(round(self.values[6], 2), self._list(self.ir_cloud[6])))
-            pcloud.header.frame_id = "/base_footprint" ##FIXME: Xem lai frame cho nay
+            pcloud.header.frame_id = "base_footprint" ##FIXME: Xem lai frame cho nay
             pcloud = pc2.create_cloud_xyz32(pcloud.header, self.ir_cloud)
             self.ir_pcl_pub.publish(pcloud)
 

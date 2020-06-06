@@ -17,7 +17,6 @@ class IR_sensor_arr(object):
         self.angles = angles
         self.rate = rate
         self.frame_id = frame_id
-        
         self.values = [0.8]*len(pins)
 
         self.msg = IR_Array_msg()
@@ -37,8 +36,13 @@ class IR_sensor_arr(object):
             try:
                 idx = 0
                 for pin in self.pins:
-                    self.values[idx] = self.read_value(pin)
-                    idx += 1
+                    print(self.values)
+                    if (idx<=6):
+                        self.values[idx] = self.read_value(pin)
+                        idx += 1
+                    elif (idx>6) and (idx<10):
+                        self.values[idx] = 0.8
+                        idx += 1
             except:
                 return
             self.msg.header.stamp = rospy.Time.now()
@@ -53,10 +57,10 @@ class IR_sensor_arr(object):
         if value <= 3.0:
             return self.msg.max_range
 
-        try: 
+        try:
             vol = value*(5.0/1023.0)
             distance = 27.728 * pow(vol, -1.2045)
-        except: 
+        except:
             return self.msg.max_range
         
         # convert to metter
@@ -65,4 +69,4 @@ class IR_sensor_arr(object):
         if distance > self.msg.max_range: distance = self.msg.max_range
         if distance < self.msg.min_range: distance = self.msg.min_range
 
-        return distance  
+        return distance

@@ -30,7 +30,8 @@ ARG = 1 # Lua chon thuat toan su dung
 class IR_safety_Controller():
     def __init__(self):
         rospy.init_node('ir_safety_controller', log_level=rospy.DEBUG)
-        self.ir_array_sub = rospy.Subscriber("IR_sensor_arr", IR_Array_msg, self.ir_array_filter)
+        self.ir_array_sub = rospy.Subscriber("
+IR_sensor_arr", IR_Array_msg, self.ir_array_filter)
         self.odom_vel_sub = rospy.Subscriber("odom", Odometry, self.read_odom_vel)
         self.cmd_vel_sub = rospy.Subscriber("/cmd_vel", Twist, self.read_cmd_vel)
         self.ir_cmd_vel_pub = rospy.Publisher("/ir_cmd_vel", Twist, queue_size=10)
@@ -139,14 +140,14 @@ class IR_safety_Controller():
     def turn_left(self):
         rospy.loginfo("Turn left")
         self.ctr_vel_x = (self.cmd_vel_x - 0.2 if self.cmd_vel_x > 0.2 else 0)
-        self.turn_z = 2.0
+        self.turn_z = 3.0
         self.twist = self.set_twist_cmd(self.ctr_vel_x, self.turn_z)
         self.ir_cmd_vel_pub.publish(self.twist)
 
     def turn_right(self):
         rospy.loginfo("Turn right")
         self.ctr_vel_x = (self.cmd_vel_x - 0.2 if self.cmd_vel_x > 0.2 else 0)
-        self.turn_z = -2.0
+        self.turn_z = -3.0
         self.twist = self.set_twist_cmd(self.ctr_vel_x, self.turn_z)
         self.ir_cmd_vel_pub.publish(self.twist)
 
