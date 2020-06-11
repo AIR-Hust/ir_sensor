@@ -19,8 +19,8 @@ class IR_Array_ROS():
         self.timeout = rospy.get_param("~timeout", 0.5)
         self.base_frame = rospy.get_param("~base_frame", 'base_link')
 
-        self.rate = int(rospy.get_param("~rate", 150))
-        self.sensor_rate = int(rospy.get_param("~sensor_rate", 100))
+        self.rate = int(rospy.get_param("~rate", 20))
+        self.sensor_rate = int(rospy.get_param("~sensor_rate", 20))
         r = rospy.Rate(self.rate)
 
         now = rospy.Time.now()
