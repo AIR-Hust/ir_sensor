@@ -4,7 +4,7 @@ import rospy
 from ir_sensor.msg import IR_Array_msg
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist
-import thread 
+import thread
 import math
 
 # constant:
@@ -12,8 +12,8 @@ NUM_SENSOR   = 10
 NUM_SS_FRONT = 7
 NUM_SS_BACK  = 3
 PI           = 3.14
-RATE         = 5.0
-NUM_SAMPLE   = rospy.get_param("/ir_sensor/sensor_rate")/RATE
+NUM_SAMPLE   = rospy.get_param("/ir_sensor/num_sample")
+RATE         = NUM_SAMPLE/rospy.get_param("/ir_sensor/sensor_rate")
 
 # Trong so bubble_boundary
 # K = 8.0*[0.5, 1.5, 2.1, 3.2, 2.1, 1.5, 0.5, -1.0, -1.0, -1.0]
@@ -40,11 +40,11 @@ class IR_safety_Controller():
         self.ir_array_filtered = NUM_SENSOR*[0.80]
         self.ir_front = self.ir_array_filtered[0:NUM_SS_FRONT]
         self.ir_back = self.ir_array_filtered[NUM_SS_FRONT:NUM_SENSOR]
-        
+
         self.odom_vel_x = 0.0
         self.cmd_vel_x = 0.0
         self.cmd_vel_th = 0.0
-        
+
         self.bubble_boundary = NUM_SS_FRONT*[0.80]
         self.faced_obstacle = False
 
@@ -80,7 +80,7 @@ class IR_safety_Controller():
                     #FIXME: xem lại hệ số k, vận tốc
                     obstacle = self.check_obstacle()
                     # rospy.logdebug(obstacle)
-                    
+
 #                    print(obstacle[0])
                     if (obstacle[0] == 'no_obstacle'):
                         continue
@@ -130,7 +130,7 @@ class IR_safety_Controller():
                     rospy.logdebug("obstacle_locate: {}".format(self.obstacle_located))
                     obstacle[0] = 'bubble_obstacle'
                     obstacle[1] = 1
-                    # return obstacle 
+                    # return obstacle
         except Exception as e:
             rospy.logerr(e)
         finally:
@@ -169,7 +169,7 @@ class IR_safety_Controller():
         rospy.loginfo("Cannot go backward!")
         if(self.odom_vel_x < 0):
             self.force_stop()
-        
+
     def set_twist_cmd(self, ctr_vel_x, turn_z):
         twist = Twist()
         twist.linear.x = ctr_vel_x
@@ -184,7 +184,7 @@ class IR_safety_Controller():
         try:
             obstacles_right = sum(self.obstacle_located[0:4])
             obstacles_left = sum(self.obstacle_located[4:7])
-        
+
             return "Left" if obstacles_left > obstacles_right else "Right"
 
         except Exception as e:
