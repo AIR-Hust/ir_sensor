@@ -21,6 +21,7 @@ class IR_sensor_arr(object):
     def __init__(self, controller, pins, angles, rate, frame_id):
         self.controler = controller
         self.pins = pins
+        self.num_sensor = len(self.pins)
         self.angles = angles
         self.rate = rate
         self.frame_id = frame_id
@@ -42,7 +43,8 @@ class IR_sensor_arr(object):
         self.ir_sensor_angles_rad = [x*PI/180.0 for x in self.ir_sensor_angles]
         rospy.loginfo("IR sensor angles: {}".format(self._list(self.ir_sensor_angles_rad)))
         self.ir_height = 0.100
-        self.ir_maxval = 0.80 #cm
+        # self.ir_maxval = 0.80
+        self.ir_maxval = 5.0
         self.ir_cloud = [[0.1,0.1,0.1] for j in range(10)]
         # Khoi tao ir_cloud
         for i in range(len(self.ir_sensor_angles)):
@@ -55,36 +57,51 @@ class IR_sensor_arr(object):
         self.t_delta = rospy.Duration(1.0/self.rate)
         self.t_next = rospy.Time.now() + self.t_delta
 
+
     def poll(self):
         now = rospy.Time.now()
         if now > self.t_next:
             try:
                 idx = 0
                 for pin in self.pins:
-                    self.values[idx] = self.read_value(pin)
-                    idx += 1
+                    self.values[idx] = self.read_distanceM(pin)
+                    # if (idx<=6):
+                    #     self.values[idx] = self.read_distanceCM(pin)
+                    #     idx += 1
+                    # elif (idx>6):
+                    #     self.values[idx] = 0.8
+                    #     idx += 1
             except:
                 return
             self.msg.header.stamp = rospy.Time.now()
             self.msg.ranges = self.values
             self.pub.publish(self.msg)
 
+
+
             # ir cloud
             pcloud = PointCloud2()
             try:
-                for i in range(10):
-                    self.ir_cloud[i][0] = (BASE_RADIUS + self.values[i]) \
-                                            * cos(self.ir_sensor_angles_rad[i])
-                    self.ir_cloud[i][1] = (BASE_RADIUS + self.values[i]) \
-                                            * sin(self.ir_sensor_angles_rad[i])
-                    self.ir_cloud[i][2] = self.ir_height
+                for i in range(self.num_sensor):
+                    if self.values[i] >= 0.5 or self.values == 0:
+                        self.ir_cloud[i][0] = (BASE_RADIUS + self.ir_maxval) \
+                                    * cos(self.ir_sensor_angles_rad[i])
+                        self.ir_cloud[i][1] = (BASE_RADIUS + self.ir_maxval) \
+                                                * sin(self.ir_sensor_angles_rad[i])
+                        self.ir_cloud[i][2] = self.ir_height
+                    else:
+                        self.ir_cloud[i][0] = (BASE_RADIUS + self.values[i]) \
+                                                * cos(self.ir_sensor_angles_rad[i])
+                        self.ir_cloud[i][1] = (BASE_RADIUS + self.values[i]) \
+                                                * sin(self.ir_sensor_angles_rad[i])
+                        self.ir_cloud[i][2] = self.ir_height
             except:
                 rospy.logerr("Exeption in ir_cloud calculate!")
                 return
 
             # rospy.loginfo("values: {}\nir_cloud: {}".format(self._list(self.values[5:7]), self._list(self.ir_cloud[5:7],depth=2)))
             # rospy.loginfo("values: {}\nir_cloud: {}".format(round(self.values[6], 2), self._list(self.ir_cloud[6])))
-            pcloud.header.frame_id = "/base_footprint" ##FIXME: Xem lai frame cho nay
+            pcloud.header.frame_id = "base_footprint" ##FIXME: Xem lai frame cho nay
             pcloud = pc2.create_cloud_xyz32(pcloud.header, self.ir_cloud)
             self.ir_pcl_pub.publish(pcloud)
 
@@ -92,13 +109,14 @@ class IR_sensor_arr(object):
             self.t_next = now + self.t_delta
 
 
-    def read_value(self, pin):
+    def read_distanceM(self, pin):
         value = self.controler.analog_read(pin)
 
-        if value <= 3.0:
-            return self.msg.max_range
+        # if value <= 3.0:
+        #     return self.msg.max_range
 
         try:
+            # Chuyen doi tu gia tri dien ap ADC sang gia tri khoang cach
             vol = value*(5.0/1023.0)
             distance = 27.728 * pow(vol, -1.2045)
         except:
@@ -111,6 +129,10 @@ class IR_sensor_arr(object):
         if distance < self.msg.min_range: distance = self.msg.min_range
 
         return distance
+
+    def read_ADC(self, pin):
+        value = self.controler.analog_read(pin)
+        return value
 
     def _list(self, list, depth=1):
         if depth == 1:

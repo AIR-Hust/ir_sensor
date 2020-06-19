@@ -1,5 +1,6 @@
 <launch>
    <node name="ir_sensor" pkg="ir_sensor" type="ir_arduino_node.py" output="screen">
       <rosparam file="$(find ir_sensor)/config/IR_array_params.yaml" command="load" />
+      <!-- <rosparam file="$(find ir_sensor)/config/IR_array_params_test.yaml" command="load" /> -->
    </node>
 </launch>
