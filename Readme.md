@@ -128,3 +128,17 @@ ir_layer:
 
 - Kiểm tra và calib độ chính xác của các cảm biến
 - Test giải thuật tránh vật cản
+
+## Đánh giá hệ thống IR
+
+### Đánh giá độ chính xác đơn lẻ
+
+Test IR bằng file launch
+
+```bash
+roslaunch ir_sensor IR_sensor.launch
+```
+
+--> Đánh giá bằng việc đo nhiều lần
+
+### Đánh giá thuật toán
