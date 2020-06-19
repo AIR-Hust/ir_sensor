@@ -21,6 +21,7 @@ class IR_sensor_arr(object):
     def __init__(self, controller, pins, angles, rate, frame_id):
         self.controler = controller
         self.pins = pins
+        self.num_sensor = len(self.pins)
         self.angles = angles
         self.rate = rate
         self.frame_id = frame_id
@@ -63,12 +64,13 @@ class IR_sensor_arr(object):
             try:
                 idx = 0
                 for pin in self.pins:
-                    if (idx<=6):
-                        self.values[idx] = self.read_value(pin)
-                        idx += 1
-                    elif (idx>6):
-                        self.values[idx] = 0.8
-                        idx += 1
+                    self.values[idx] = self.read_distanceM(pin)
+                    # if (idx<=6):
+                    #     self.values[idx] = self.read_distanceCM(pin)
+                    #     idx += 1
+                    # elif (idx>6):
+                    #     self.values[idx] = 0.8
+                    #     idx += 1
             except:
                 return
             self.msg.header.stamp = rospy.Time.now()
@@ -80,7 +82,7 @@ class IR_sensor_arr(object):
             # ir cloud
             pcloud = PointCloud2()
             try:
-                for i in range(10):
+                for i in range(self.num_sensor):
                     if self.values[i] >= 0.5 or self.values == 0:
                         self.ir_cloud[i][0] = (BASE_RADIUS + self.ir_maxval) \
                                     * cos(self.ir_sensor_angles_rad[i])
@@ -107,11 +109,11 @@ class IR_sensor_arr(object):
             self.t_next = now + self.t_delta
 
 
-    def read_value(self, pin):
+    def read_distanceM(self, pin):
         value = self.controler.analog_read(pin)
 
-        if value <= 3.0:
-            return self.msg.max_range
+        # if value <= 3.0:
+        #     return self.msg.max_range
 
         try:
             # Chuyen doi tu gia tri dien ap ADC sang gia tri khoang cach
@@ -127,6 +129,10 @@ class IR_sensor_arr(object):
         if distance < self.msg.min_range: distance = self.msg.min_range
 
         return distance
+
+    def read_ADC(self, pin):
+        value = self.controler.analog_read(pin)
+        return value
 
     def _list(self, list, depth=1):
         if depth == 1:

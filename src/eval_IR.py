@@ -5,8 +5,8 @@ from ir_sensor.msg import IR_Array_msg
 from std_msgs.msg import String
 from datetime import datetime
 
-numIR = 0
-NumSample = 100
+numIR = 3
+NumSample = 200
 
 # open file to write
 now = datetime.now()
