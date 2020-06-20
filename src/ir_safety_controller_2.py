@@ -73,9 +73,8 @@ class IR_safety_Controller():
             now = rospy.Time.now()
             if now > self.t_next:
                 try:
-                    if(self.odom_vel_x == 0){
+                    if(self.odom_vel_x == 0):
                         continue
-                    }
 
                     self.bubble_boundary = [k*self.odom_vel_x*self.t_delta for k in K]
 
