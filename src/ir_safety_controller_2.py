@@ -183,8 +183,8 @@ class IR_safety_Controller():
         rospy.loginfo("Force stop!")
         self.twist = self.set_twist_cmd(0.0, 0.0)
         now = rospy.Time.now()
-        while(rospy.Time.now() - now > 0.5):
-            self.ir_cmd_vel_pub.publish(self.twist)
+        # while(rospy.Time.now() - now > 0.5):
+        #     self.ir_cmd_vel_pub.publish(self.twist)
 
     def goForward_slow(self):
         rospy.loginfo("Go forward slow...")
