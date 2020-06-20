@@ -72,7 +72,8 @@ class IR_safety_Controller():
                 try:
                     # self.bubble_boundary = [K*self.odom_vel_x*(1.0/RATE)*math.cos(r)\
                                             # for r in SENSOR_ANGLES_RAD]
-                    self.bubble_boundary = [k*self.odom_vel_x]
+                    self.bubble_boundary = [k*self.odom_vel_x*self.t_delta for k in K]
+                    rospy.logdebug("bb: {}".format(self.bubble_boundary))
 
                     self.bubble_boundary = [(bb if bb < 0.70 else 0.70) \
                                             for bb in self.bubble_boundary]

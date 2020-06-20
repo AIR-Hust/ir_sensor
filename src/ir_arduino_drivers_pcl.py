@@ -16,6 +16,7 @@ import sensor_msgs.point_cloud2 as pc2
 from sensor_msgs.msg import PointCloud2
 
 BASE_RADIUS = 0.145  #cm
+have_IR_back = False
 
 class IR_sensor_arr(object):
     def __init__(self, controller, pins, angles, rate, frame_id):
@@ -64,20 +65,19 @@ class IR_sensor_arr(object):
             try:
                 idx = 0
                 for pin in self.pins:
-                    self.values[idx] = self.read_distanceM(pin)
-                    # if (idx<=6):
-                    #     self.values[idx] = self.read_distanceCM(pin)
-                    #     idx += 1
-                    # elif (idx>6):
-                    #     self.values[idx] = 0.8
-                    #     idx += 1
+                    if have_IR_back:
+                        self.values[idx] = self.read_distanceM(pin)
+                    else:
+                        if (idx<=6):
+                            self.values[idx] = self.read_distanceM(pin)
+                        elif (idx>6):
+                            self.values[idx] = 0.8
+                    idx += 1
             except:
                 return
             self.msg.header.stamp = rospy.Time.now()
             self.msg.ranges = self.values
             self.pub.publish(self.msg)
-
-
 
             # ir cloud
             pcloud = PointCloud2()
@@ -112,14 +112,12 @@ class IR_sensor_arr(object):
     def read_distanceM(self, pin):
         value = self.controler.analog_read(pin)
 
-        # if value <= 3.0:
-        #     return self.msg.max_range
-
         try:
             # Chuyen doi tu gia tri dien ap ADC sang gia tri khoang cach
             vol = value*(5.0/1023.0)
             distance = 27.728 * pow(vol, -1.2045)
-        except:
+        except Exeption as e:
+            rospy.logerr("Error in read distance. Err: {}".format(e))
             return self.msg.max_range
 
         # convert to metter
