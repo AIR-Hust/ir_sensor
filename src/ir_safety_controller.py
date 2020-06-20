@@ -12,8 +12,8 @@ NUM_SENSOR   = 10
 NUM_SS_FRONT = 7
 NUM_SS_BACK  = 3
 PI           = 3.14
-RATE         = 5.0
-NUM_SAMPLE   = rospy.get_param("/ir_sensor/sensor_rate")/rospy.get_param("/ir_sensor/result_rate")
+NUM_SAMPLE   = rospy.get_param("/ir_sensor/num_sample")
+RATE         = NUM_SAMPLE/rospy.get_param("/ir_sensor/sensor_rate")
 
 # Trong so bubble_boundary
 # K = 8.0*[0.5, 1.5, 2.1, 3.2, 2.1, 1.5, 0.5, -1.0, -1.0, -1.0]
