@@ -1,0 +1,6 @@
+<launch>
+    <node name="eval_IR_all" pkg="ir_sensor" type="eval_IR_all.py" output="screen">
+    </node>
+    <node name="eval_odom" pkg="ir_sensor" type="eval_odom.py" output="screen">
+    </node>
+</launch>

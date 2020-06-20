@@ -42,7 +42,7 @@ class IR_sensor_arr(object):
         self.ir_sensor_angles = rospy.get_param("~angles")
         self.ir_sensor_angles_rad = [x*PI/180.0 for x in self.ir_sensor_angles]
         rospy.loginfo("IR sensor angles: {}".format(self._list(self.ir_sensor_angles_rad)))
-        self.ir_height = 0.100
+        self.ir_height = 0.7
         # self.ir_maxval = 0.80
         self.ir_maxval = 5.0
         self.ir_cloud = [[0.1,0.1,0.1] for j in range(10)]
