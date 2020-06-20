@@ -38,7 +38,7 @@ class IR_safety_Controller():
         self.odom_vel_sub = rospy.Subscriber("odom", Odometry, self.read_odom_vel)
         self.cmd_vel_sub = rospy.Subscriber("/cmd_vel", Twist, self.read_cmd_vel)
         self.ir_cmd_vel_pub = rospy.Publisher("/ir_cmd_vel", Twist, queue_size=10)
-        self.bb_pcl_pub = rospy.Publisher("/bb_cloudpoit", PointCloud2, queue_size=10 )
+        self.bb_pcl_pub = rospy.Publisher("/bb_cloudpoint", PointCloud2, queue_size=10 )
         self.urgent_pcl_pub = rospy.Publisher("/urgent_cloudpoint", PointCloud2, queue_size=10)
         self.bb_cloud = [[0.1, 0.1, 0.7] for j in range(7)]
         self.urgent_cloud = [[0.2, 0.2, 0.7] for j in range(10)]
@@ -74,8 +74,8 @@ class IR_safety_Controller():
             now = rospy.Time.now()
             if now > self.t_next:
                 try:
-                    if(self.odom_vel_x == 0):
-                        continue
+                    # if(self.odom_vel_x == 0):
+                    #     continue
 
                     self.bubble_boundary = [k*dK*self.odom_vel_x*self.t_delta for k in K]
 
