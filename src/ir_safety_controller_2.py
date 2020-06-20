@@ -12,12 +12,12 @@ NUM_SENSOR   = 10
 NUM_SS_FRONT = 7
 NUM_SS_BACK  = 3
 PI           = 3.14
-RATE         = 5.0
-NUM_SAMPLE   = rospy.get_param("/ir_sensor/sensor_rate")/rospy.get_param("/ir_sensor/result_rate")
+RATE         = rospy.get_param("/ir_sensor/result_rate")
+NUM_SAMPLE   = rospy.get_param("/ir_sensor/sensor_rate")/RATE
 
 # Trong so bubble_boundary
-# K = 8.0*[0.5, 1.5, 2.1, 3.2, 2.1, 1.5, 0.5, -1.0, -1.0, -1.0]
-K = 15.0
+K = 8.0*[0.5, 1.5, 2.1, 3.2, 2.1, 1.5, 0.5]
+# K = 15.0
 OFFSET = NUM_SENSOR*[0.0]
 SENSOR_ANGLES = rospy.get_param("/ir_sensor/angles")
 SENSOR_ANGLES_RAD = [x*math.pi/180.0 for x in SENSOR_ANGLES]
@@ -34,6 +34,7 @@ class IR_safety_Controller():
         self.odom_vel_sub = rospy.Subscriber("odom", Odometry, self.read_odom_vel)
         self.cmd_vel_sub = rospy.Subscriber("/cmd_vel", Twist, self.read_cmd_vel)
         self.ir_cmd_vel_pub = rospy.Publisher("/ir_cmd_vel", Twist, queue_size=10)
+        self.bb_pub = rospy.Publisher("/bb", IR_Array_msg, queue_size=10 )
 
         self.count = 0
         self.ir_array_sum = NUM_SENSOR*[0]
@@ -47,6 +48,10 @@ class IR_safety_Controller():
 
         self.bubble_boundary = NUM_SS_FRONT*[0.80]
         self.faced_obstacle = False
+        self.bb_msg = IR_Array_msg()
+        self.bb_msg.header.frame_id = "base_link"
+        self.bb_msg.min_range = 0.2
+        self.bb_msg.max_range = 0.7
 
         self.obstacle_located = NUM_SS_FRONT*[0]
 
@@ -65,12 +70,10 @@ class IR_safety_Controller():
             now = rospy.Time.now()
             if now > self.t_next:
                 try:
-                    # if(ARG==1):
-                    #     self.bubble_boundary = NUM_SENSOR*[URGENT_DISTANCE]
-                    # elif(ARG==2):
-                    self.bubble_boundary = [K*self.odom_vel_x*(1.0/RATE)*math.cos(r)\
-                                            for r in SENSOR_ANGLES_RAD]
-                    # print(self.bubble_boundary)
+                    # self.bubble_boundary = [K*self.odom_vel_x*(1.0/RATE)*math.cos(r)\
+                                            # for r in SENSOR_ANGLES_RAD]
+                    self.bubble_boundary = [k*self.odom_vel_x]
+
                     self.bubble_boundary = [(bb if bb < 0.70 else 0.70) \
                                             for bb in self.bubble_boundary]
                     # print log every 2s
@@ -80,7 +83,6 @@ class IR_safety_Controller():
                     obstacle = self.check_obstacle()
                     # rospy.logdebug(obstacle)
 
-#                    print(obstacle[0])
                     if (obstacle[0] == 'no_obstacle'):
                         continue
                     elif (obstacle[0] == 'urgent'):
@@ -100,11 +102,21 @@ class IR_safety_Controller():
                         else:
                             self.turn_left()
                        #      self.force_stop()
+
+                    # self.bb_msg.header.st
+                    self.bb_msg.ranges = self.bubble_boundary
+                    self.bb_pub.publish(self.bb_msg)
                 except Exception as e:
                     rospy.logerr(e)
                     return
                 self.t_next = now + self.t_delta
 
+    # check_obstacle:
+    # return:
+    # obstacle[0] = 'urgent' if faced obstacle in urgent case
+    #             = 'bubble_obstacle' if faced obstacle in bb case
+    # obstacle[1]: do have obstacle in front [1] or not [0]
+    # obstacle[2]: do have obstacle in behind [1] or not [0]
     def check_obstacle(self):
         obstacle = ['no_obstacle', 0, 0]
         try:
@@ -120,6 +132,7 @@ class IR_safety_Controller():
                 return obstacle
             else:
                 rospy.logdebug_throttle(1,self.bubble_boundary[0:NUM_SS_FRONT])
+                # Xac dinh vi tri co vat can
                 self.obstacle_located = [(1 if x < bb else 0) for x,bb in \
                                          zip(self.ir_front, \
                                              self.bubble_boundary[0:NUM_SS_FRONT])]
@@ -147,15 +160,22 @@ class IR_safety_Controller():
         self.twist = self.set_twist_cmd(self.ctr_vel_x, self.turn_z)
         self.ir_cmd_vel_pub.publish(self.twist)
 
+    # Robot dung lai trong 0.5s
     def force_stop(self):
         rospy.loginfo("Force stop!")
         self.twist = self.set_twist_cmd(0.0, 0.0)
+        now = rospy.Time.now()
+        while(rospy.Time.now() - now > 0.5):
+            self.ir_cmd_vel_pub.publish(self.twist)
+
+    def goForward_slow(self):
+        rospy.loginfo("Go forward slow...")
+        self.twist = self.set_twist_cmd(0.1, 0.0)
         self.ir_cmd_vel_pub.publish(self.twist)
-        ### Add vao de ko bi dung mai
-        #r = rospy.Rate(10)
-        #r.sleep
-        #check_obstacle()
-        ### het sua (Tung)
+
+    def goBack_slow(self):
+        rospy.loginfo("Go back slow...")
+        self.ir_cmd_vel_pub.publish(self.set_twist_cmd(-0.1, 0.0))
 
     def stop_goForward(self):
         rospy.loginfo("Cannot go forward!")
@@ -202,7 +222,7 @@ class IR_safety_Controller():
             self.count = 0
             self.ir_array_sum = NUM_SENSOR*[0]
 
-    def  read_odom_vel(self, msg):
+    def read_odom_vel(self, msg):
         self.odom_vel_x = msg.twist.twist.linear.x
 
     def read_cmd_vel(self, msg):

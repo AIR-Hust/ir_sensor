@@ -9,24 +9,21 @@ numIR = 7
 # open file to write
 now = datetime.now()
 filename_time = now.strftime("%Y%m%d_%H%M%S")
-LOG_FILE = "log/eval_IR{}_{}.txt".format(numIR, filename_time)
+LOG_FILE = "/home/ubuntu/catkin_ws/src/ir_sensor/src/log/eval_IR_all_{}.txt".format(filename_time)
 f = open(LOG_FILE, "w+")
 write = False
+view = False
 cnt = 0
 
 
 def eval_ir(data):
     # if ()
-    global write, cnt
+    global write, cnt, view
     if(write):
-        cnt += 1
-        if(cnt <= 100):
-            rospy.loginfo("IR 3: {}".format(data.ranges[3]))
-            f.write("{}\n".format(data.ranges[3]))
-        else:
-            cnt = 0
-            write = False
-            f.write("\n")
+        rospy.loginfo("IR : {}".format(data.ranges))
+        f.write("{}\n".format(data.ranges))
+    if(view):
+        rospy.loginfo("IR : {}".format(data.ranges))
 
 def setkey(key):
     global write
@@ -38,6 +35,8 @@ def setkey(key):
         write = False
     if(key.data == "q"):
         exit()
+    if (key.data == "v"):
+        view = True
     if(key.data == "c"):
         rospy.loginfo("Closing file")
         f.close()
