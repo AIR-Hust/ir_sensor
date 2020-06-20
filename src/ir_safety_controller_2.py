@@ -4,6 +4,9 @@ import rospy
 from ir_sensor.msg import IR_Array_msg
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist
+from sensor_msgs.msg import Range
+import sensor_msgs.point_cloud2 as pc2
+from sensor_msgs.msg import PointCloud2
 import thread
 import math
 
@@ -23,7 +26,7 @@ SENSOR_ANGLES = rospy.get_param("/ir_sensor/angles")
 SENSOR_ANGLES_RAD = [x*math.pi/180.0 for x in SENSOR_ANGLES]
 URGENT_DISTANCE = 0.30
 URGENT_BD = NUM_SENSOR*[URGENT_DISTANCE]
-
+IR_RING_RADIUS = 0.145
 ARG = 1 # Lua chon thuat toan su dung
         # ARG=1: test voi bb co dinh = 30cm
 
@@ -34,7 +37,11 @@ class IR_safety_Controller():
         self.odom_vel_sub = rospy.Subscriber("odom", Odometry, self.read_odom_vel)
         self.cmd_vel_sub = rospy.Subscriber("/cmd_vel", Twist, self.read_cmd_vel)
         self.ir_cmd_vel_pub = rospy.Publisher("/ir_cmd_vel", Twist, queue_size=10)
-        self.bb_pub = rospy.Publisher("/bb", IR_Array_msg, queue_size=10 )
+        self.bb_pcl_pub = rospy.Publisher("/bb_cloudpoit", PointCloud2, queue_size=10 )
+        self.urgent_pcl_pub = rospy.Publisher("/urgent_cloudpoint", PointCloud2, queue_size=10)
+        self.bb_cloud = [[0.1, 0.1, 0.7] for j in range(7)]
+        self.urgent_cloud = [[0.2, 0.2, 0.7] for j in range(10)]
+        self.ir_heigh = 0.7
 
         self.count = 0
         self.ir_array_sum = NUM_SENSOR*[0]
@@ -48,10 +55,6 @@ class IR_safety_Controller():
 
         self.bubble_boundary = NUM_SS_FRONT*[0.80]
         self.faced_obstacle = False
-        self.bb_msg = IR_Array_msg()
-        self.bb_msg.header.frame_id = "base_link"
-        self.bb_msg.min_range = 0.2
-        self.bb_msg.max_range = 0.7
 
         self.obstacle_located = NUM_SS_FRONT*[0]
 
@@ -70,10 +73,11 @@ class IR_safety_Controller():
             now = rospy.Time.now()
             if now > self.t_next:
                 try:
-                    # self.bubble_boundary = [K*self.odom_vel_x*(1.0/RATE)*math.cos(r)\
-                                            # for r in SENSOR_ANGLES_RAD]
+                    if(self.odom_vel_x == 0){
+                        continue
+                    }
+
                     self.bubble_boundary = [k*self.odom_vel_x*self.t_delta for k in K]
-                    rospy.logdebug("bb: {}".format(self.bubble_boundary))
 
                     self.bubble_boundary = [(bb if bb < 0.70 else 0.70) \
                                             for bb in self.bubble_boundary]
@@ -82,7 +86,6 @@ class IR_safety_Controller():
                                 .format(self.odom_vel_x ,self._list(self.bubble_boundary)))
                     #FIXME: xem lại hệ số k, vận tốc
                     obstacle = self.check_obstacle()
-                    # rospy.logdebug(obstacle)
 
                     if (obstacle[0] == 'no_obstacle'):
                         continue
@@ -99,14 +102,28 @@ class IR_safety_Controller():
                         rospy.logdebug("ir_array_filtered {}".format(self._list(self.ir_array_filtered)))
                         if (obstacle_dir == "Left"):
                             self.turn_right()
-                       #      self.force_stop()
                         else:
                             self.turn_left()
-                       #      self.force_stop()
 
-                    # self.bb_msg.header.st
-                    self.bb_msg.ranges = self.bubble_boundary
-                    self.bb_pub.publish(self.bb_msg)
+                    # publish bb to cloudpoint
+                    pcloud_bb = PointCloud2()
+                    for i in range(7):
+                        self.bb_cloud[i][0] = (self.bubble_boundary[i] + IR_RING_RADIUS) * math.cos(SENSOR_ANGLES_RAD[i])
+                        self.bb_cloud[i][1] = (self.bubble_boundary[i] + IR_RING_RADIUS) * math.sin(SENSOR_ANGLES_RAD[i])
+                        self.bb_cloud[i][2] = self.ir_heigh
+                    pcloud_bb.header.frame_id = "base_footprint"
+                    pcloud_bb = pc2.create_cloud_xyz32(pcloud_bb.header, self.bb_cloud)
+                    self.bb_pcl_pub.publish(pcloud_bb)
+
+                    # publish urgent to cloudpoint()
+                    pcloud_urgent = PointCloud2()
+                    for i in range(10):
+                        self.urgent_cloud[i][0] = (self.bubble_boundary[i] + IR_RING_RADIUS) * math.cos(SENSOR_ANGLES_RAD[i])
+                        self.urgent_cloud[i][1] = (self.bubble_boundary[i] + IR_RING_RADIUS) * math.sin(SENSOR_ANGLES_RAD[i])
+                        self.urgent_cloud[i][2] = self.ir_heigh
+                    pcloud_urgent.header.frame_id = "base_footprint"
+                    pcloud_urgent = pc2.create_cloud_xyz32(pcloud_urgent.header, self.urgent_cloud)
+                    self.urgent_pcl_pub.publish(pcloud_urgent)
                 except Exception as e:
                     rospy.logerr(e)
                     return
