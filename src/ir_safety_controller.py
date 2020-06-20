@@ -12,8 +12,10 @@ NUM_SENSOR   = 10
 NUM_SS_FRONT = 7
 NUM_SS_BACK  = 3
 PI           = 3.14
-NUM_SAMPLE   = rospy.get_param("/ir_sensor/num_sample")
-RATE         = NUM_SAMPLE/rospy.get_param("/ir_sensor/sensor_rate")
+# NUM_SAMPLE   = rospy.get_param("/ir_sensor/num_sample")
+# RATE         = NUM_SAMPLE/rospy.get_param("/ir_sensor/sensor_rate")
+RATE         = rospy.get_param("/ir_sensor/result_rate")
+NUM_SAMPLE   = rospy.get_param("/ir_sensor/sensor_rate")/RATE
 
 # Trong so bubble_boundary
 # K = 8.0*[0.5, 1.5, 2.1, 3.2, 2.1, 1.5, 0.5, -1.0, -1.0, -1.0]
@@ -21,7 +23,7 @@ K = 15.0
 OFFSET = NUM_SENSOR*[0.0]
 SENSOR_ANGLES = rospy.get_param("/ir_sensor/angles")
 SENSOR_ANGLES_RAD = [x*math.pi/180.0 for x in SENSOR_ANGLES]
-URGENT_DISTANCE = 0.30
+URGENT_DISTANCE = 0.20
 URGENT_BD = NUM_SENSOR*[URGENT_DISTANCE]
 
 ARG = 1 # Lua chon thuat toan su dung
