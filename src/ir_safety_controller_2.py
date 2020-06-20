@@ -19,7 +19,8 @@ RATE         = rospy.get_param("/ir_sensor/result_rate")
 NUM_SAMPLE   = rospy.get_param("/ir_sensor/sensor_rate")/RATE
 
 # Trong so bubble_boundary
-K = 8.0*[0.5, 1.5, 2.1, 3.2, 2.1, 1.5, 0.5]
+K = [0.5, 1.5, 2.1, 3.2, 2.1, 1.5, 0.5]
+dK = 8.0
 # K = 15.0
 OFFSET = NUM_SENSOR*[0.0]
 SENSOR_ANGLES = rospy.get_param("/ir_sensor/angles")
@@ -76,7 +77,7 @@ class IR_safety_Controller():
                     if(self.odom_vel_x == 0):
                         continue
 
-                    self.bubble_boundary = [k*self.odom_vel_x*self.t_delta for k in K]
+                    self.bubble_boundary = [k*dK*self.odom_vel_x*self.t_delta for k in K]
 
                     self.bubble_boundary = [(bb if bb < 0.70 else 0.70) \
                                             for bb in self.bubble_boundary]
