@@ -76,7 +76,7 @@ class IR_safety_Controller():
                 try:
                     # if(self.odom_vel_x == 0):
                     #     continue
-
+                    loginf("debug_here")
                     self.bubble_boundary = [k*dK*self.odom_vel_x*self.t_delta for k in K]
 
                     self.bubble_boundary = [(bb if bb < 0.70 else 0.70) \
