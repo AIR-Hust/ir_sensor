@@ -2,7 +2,7 @@
   <include file="$(find ir_sensor)/launch/IR_sensor.launch" />
 
   <!-- Publish  -->
-  <node name="ir_safety_controller" pkg="ir_sensor" type="ir_safety_controller_2.py" output="screen">
+  <node name="ir_safety_controller" pkg="ir_sensor" type="ir_safety_controller.py" output="screen">
     <remap from="ir_cmd_vel" to="cmd_vel_mux/input/ir_safety_controller"/>
   </node>
 
